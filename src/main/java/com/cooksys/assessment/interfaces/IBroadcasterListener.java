@@ -4,4 +4,5 @@ import com.cooksys.assessment.model.Message;
 
 public interface IBroadcasterListener {
 	public void recieveMessage(Message message);
+	public String getCurrentUser();
 }

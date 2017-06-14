@@ -6,9 +6,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Observable;
-import java.util.Observer;
-import java.util.concurrent.Callable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +21,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 	private Socket socket;
 	private PrintWriter writer;
 	private ObjectMapper mapper;
+	private String currentUser;
 
 	public ClientHandler(Socket socket) {
 		super();
@@ -47,23 +45,30 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 				Message message = mapper.readValue(raw, Message.class);
 
 				switch (message.getCommand()) {
-					case "connect":
-						log.info("user <{}> connected", message.getUsername());
-						Server.broadcast(new Message(message.getUsername(), message.getCommand(), message.getUsername() + " Connected"));
-						Server.register(this);
-						break;
-					case "disconnect":
-						log.info("user <{}> disconnected", message.getUsername());
-						Server.unregister(this);
-						Server.broadcast(new Message(message.getUsername(), message.getCommand(), message.getUsername() + " Disconnected"));
-						this.socket.close();
-						break;
-					case "echo":
-						log.info("user <{}> echoed message <{}>", message.getUsername(), message.getContents());
-						String response = mapper.writeValueAsString(message);
-						writer.write(response);
-						writer.flush();
-						break;
+				case "connect":
+					log.info("user <{}> connected", message.getUsername());
+					message.setContents(" has connected");
+					Server.broadcast(message);
+					Server.register(this);
+					currentUser = message.getUsername();
+					break;
+				case "disconnect":
+					log.info("user <{}> disconnected", message.getUsername());
+					Server.unregister(this);
+					message.setContents(" has disconnected");
+					Server.broadcast(message);
+					this.socket.close();
+					break;
+				case "echo":
+					log.info("user <{}> echoed message <{}>", message.getUsername(), message.getContents());
+					String response = mapper.writeValueAsString(message);
+					writer.write(response);
+					writer.flush();
+					break;
+				case "broadcast":
+					log.info("user <{}> broadcast message <{}>", message.getUsername(), message.getContents());
+					Server.broadcast(message);
+					break;
 				}
 			}
 
@@ -73,7 +78,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 	}
 
 	@Override
-	public void recieveMessage(Message message) {
+	public synchronized void recieveMessage(Message message) {
 		try {
 			String response = mapper.writeValueAsString(message);
 			writer.write(response);
@@ -81,7 +86,11 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		}
-		
+
+	}
+
+	public String getCurrentUser() {
+		return currentUser;
 	}
 
 }

@@ -18,6 +18,12 @@ export class Message {
   }
 
   toString () {
-    return this.contents
+    if (this.command === 'connect' || this.command === 'disconnect') {
+      return `Timestamp: <${this.username}> ${this.contents}`
+    } else if (this.command === 'broadcast') {
+      return `TimeStamp <${this.username}> (all): ${this.contents}`
+    } else {
+      return `TimeStamp <${this.username}> (${this.command}): ${this.contents}`
+    }
   }
 }

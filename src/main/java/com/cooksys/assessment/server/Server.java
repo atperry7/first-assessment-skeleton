@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
-import java.util.Observable;
-import java.util.Observer;
 import java.util.concurrent.ExecutorService;
 
 import org.slf4j.Logger;
@@ -16,10 +14,10 @@ import com.cooksys.assessment.model.Message;
 
 public class Server implements Runnable {
 	private Logger log = LoggerFactory.getLogger(Server.class);
-	
+
 	private int port;
 	private static ExecutorService executor;
-	private static LinkedList<IBroadcasterListener > listeners = new LinkedList<>();
+	private static LinkedList<IBroadcasterListener> listeners = new LinkedList<>();
 
 	public Server(int port, ExecutorService executor) {
 		super();
@@ -36,31 +34,43 @@ public class Server implements Runnable {
 				Socket socket = ss.accept();
 				ClientHandler handler = new ClientHandler(socket);
 				executor.execute(handler);
-				
+
 			}
 		} catch (IOException e) {
 			log.error("Something went wrong :/", e);
 		}
 	}
-	
+
+	//Lets us add a client to listen for broadcasted messages
+	public static synchronized void register(IBroadcasterListener listener) {
+		listeners.add(listener);
+	}
+
+	//Lets us remove a client from listening to the broadcasted messages
+	public static synchronized void unregister(IBroadcasterListener listener) {
+		listeners.remove(listener);
+	}
+
+	//Goes through the current registered clients on the server and broadcasts a message to them
 	public static synchronized void broadcast(Message message) {
-		for (final IBroadcasterListener  listener : listeners)
+		listeners.stream().forEach(listener -> executor.execute(() -> listener.recieveMessage(message)));
+	}
+	
+	//Goes through and tries to find the user to send a private message to
+	public static synchronized void whisper(Message message, String userName) {
+		for (final IBroadcasterListener listener : listeners)
 			executor.execute(new Runnable() {
 				@Override
 				public void run() {
-					listener.recieveMessage(message);
+					if (listener.getCurrentUser().equals(userName)) {
+						listener.recieveMessage(message);
+					}
 				}
 			});
 	}
 	
-
-	public static synchronized void register(IBroadcasterListener  listener) {
-		listeners.add(listener);
+	public static synchronized void getCurrentUsersOnServer() {
+		
 	}
-
-	public static synchronized void unregister(IBroadcasterListener  listener) {
-		listeners.remove(listener);
-	}
-
 
 }
