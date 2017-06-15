@@ -24,14 +24,14 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 	private ObjectMapper mapper;
 	private PrintWriter writer;
 	
+	// Variables used for data saved for the current client
 	private String currentUser;
 	private String lastCommand = "unknown";
-
-	private Calendar calendar;
+	
+	// Variables used for time stamping information received from the client
 	private static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
 	
 	
-
 	public ClientHandler(Socket socket) {
 		super();
 		this.socket = socket;
@@ -53,17 +53,10 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 				String raw = reader.readLine();
 				Message message = mapper.readValue(raw, Message.class);				
 				
-				String currentCommand = message.getCommand();
-				if (currentCommand.equals("echo") || currentCommand.equals("broadcast") || currentCommand.equals("users") || currentCommand.startsWith("@") ) {
-					lastCommand = currentCommand;
-				} else if (!lastCommand.equals("unknown") && !currentCommand.equals("disconnect")) {
-					String newContents = message.getCommand() + " " + message.getContents();
-					message.setCommand(lastCommand);
-					message.setContents(newContents);
-				}
+				message = commandCheck(message);
 				
 				//This attaches a time stamp based on when the server receives the message
-				calendar = Calendar.getInstance();
+				Calendar calendar = Calendar.getInstance();
 				message.setTimeStamp(simpleDateFormat.format(calendar.getTime()));
 
 				switch (message.getCommand()) {
@@ -100,7 +93,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 						message.setCommand("whisper");
 						Server.whisper(message, userToMessage);
 					} else {
-						message.setContents("Command used was not recognized");
+						message.setContents("Command used was not recognized.");
 						writeToClient(message);
 					}
 				
@@ -111,8 +104,31 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 			log.error("Something went wrong :/", e);
 		}
 	}
+
+	/**
+	 * Checks if the user is trying to use last command
+	 * @param message Message Object to be checked
+	 * @return Message Object after being checked by the method
+	 */
+	private Message commandCheck(Message message) {
+		String currentCommand = message.getCommand();
+		
+		if (currentCommand.equals("echo") || currentCommand.equals("broadcast") || currentCommand.equals("users") || currentCommand.startsWith("@") ) {
+			lastCommand = currentCommand;
+		} else if (!lastCommand.equals("unknown") && !currentCommand.equals("disconnect")) {
+			String newContents = message.getCommand() + " " + message.getContents();
+			message.setCommand(lastCommand);
+			message.setContents(newContents);
+		}
+		
+		return message;
+	}
 	
-	// Writes messages to the current client
+	/**
+	 * Writes messages to the current client
+	 * @param message Message object to be sent back to the client
+	 * @throws JsonProcessingException Attempts to parse message to JSON
+	 */
 	private void writeToClient(Message message) throws JsonProcessingException {
 			String response = mapper.writeValueAsString(message);
 			writer.write(response);
@@ -120,7 +136,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 	}
 
 	@Override
-	public synchronized void recieveMessage(Message message) {
+	public synchronized void receiveMessage(Message message) {
 		try {
 			writeToClient(message);
 		} catch (JsonProcessingException e) {
