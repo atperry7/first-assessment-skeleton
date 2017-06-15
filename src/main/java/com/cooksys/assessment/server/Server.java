@@ -3,7 +3,6 @@ package com.cooksys.assessment.server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.concurrent.ExecutorService;
 
@@ -18,6 +17,8 @@ public class Server implements Runnable {
 
 	private int port;
 	private static ExecutorService executor;
+	
+	//Used to keep track of currently connected clients
 	private static LinkedList<IBroadcasterListener> listeners = new LinkedList<>();
 
 	public Server(int port, ExecutorService executor) {
@@ -63,7 +64,7 @@ public class Server implements Runnable {
 	 * @param message the Message object to be broadcasted to other users
 	 */
 	public static synchronized void broadcast(Message message) {
-		listeners.stream()
+		listeners.parallelStream()
 				 .forEach(listener -> executor.execute(() -> listener.receiveMessage(message)));
 	}
 	
@@ -73,10 +74,9 @@ public class Server implements Runnable {
 	 * @param userName the name of the user to send a private message to
 	 */
 	public static synchronized void whisper(Message message, String userName) {
-		for (final IBroadcasterListener listener : listeners)
-			if (listener.getCurrentUser().equals(userName)) {
-				executor.execute(() -> { listener.receiveMessage(message); });
-			}
+		listeners.stream()
+				 .filter(listener -> listener.getCurrentUser().equals(userName))
+				 .forEach(listener -> executor.execute(() -> { listener.receiveMessage(message); }));
 	}
 	
 	/**
@@ -88,10 +88,14 @@ public class Server implements Runnable {
 		for (IBroadcasterListener iBroadcasterListener : listeners) {
 			contents += "<" + iBroadcasterListener.getCurrentUser() + ">" + "\n";
 		}
-		
 		return contents;
 	}
 	
+	/**
+	 * Checks for user by there username 
+	 * @param username username to check the server for
+	 * @return true or false based on the finding
+	 */
 	public static boolean checkForUser(String username) {
 		for (IBroadcasterListener listener : listeners) {
 			if (username.equals(listener.getCurrentUser())) {
@@ -100,5 +104,4 @@ public class Server implements Runnable {
 		}	
 		return false;
 	}
-
 }

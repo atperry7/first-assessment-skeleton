@@ -61,6 +61,8 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 
 				switch (message.getCommand()) {
 				case "connect":
+					//Checks if the current username already exists, if it does prints to the clients to try another username
+					//If it does not exist then it goes ahead and creates the client for the user and broadcasts the message
 					if (Server.checkForUser(message.getUsername())) {
 						log.info("user <{}> already exisits closing socket", message.getUsername());
 						message.setContents("user already exists, please try another usename!");
@@ -103,7 +105,6 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 						message.setContents("Command used was not recognized. Type 'help' for supported commands.");
 						writeToClient(message);
 					}
-				
 				}
 			}
 

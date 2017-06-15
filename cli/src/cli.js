@@ -5,8 +5,6 @@ import { Message } from './Message'
 
 export const cli = vorpal()
 
-const ipRegex = /(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/
-
 let username
 let server
 
@@ -19,7 +17,7 @@ cli
   .option('-p, --port <p>', 'Port for the chat server, defaults 8080')
   .delimiter(cli.chalk['green'](`<FTD Chat>`))
   .init(function (args, callback) {
-    let host = ipRegex.test(args.options.host) ? args.options.host : 'localhost'
+    let host = args.options.host === undefined ? 'localhost' : args.options.host
     let port = args.options.port === undefined ? 8080 : args.options.port
     username = args.username
 
@@ -43,7 +41,7 @@ cli
     if (command === 'disconnect') {
       server.end(new Message({ username, command }).toJSON() + '\n')
     } else if (command === 'help') {
-      this.log('Currently supported commands are:\ndisconnect\nusers\necho (message)\nbroadcast (message)\n@username (message)')
+      this.log('Currently supported commands are:\ndisconnect\nusers\necho (message)\nbroadcast (message)\n@username (message)\n')
     } else {
       server.write(new Message({ username, command, contents }).toJSON() + '\n')
     }
