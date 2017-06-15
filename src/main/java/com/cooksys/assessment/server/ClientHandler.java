@@ -40,7 +40,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 		 try {
 			writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 		} catch (IOException e) {
-			log.error("Unable to establish connection with writer: ", e);
+			log.error("Unable to establish connection with writer on the socket: ", e);
 		}
 	}
 
@@ -48,7 +48,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 		try {
 
 			BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-			
+			Calendar calendar;
 			while (!socket.isClosed()) {
 				String raw = reader.readLine();
 				Message message = mapper.readValue(raw, Message.class);				
@@ -56,7 +56,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 				message = commandCheck(message);
 				
 				//This attaches a time stamp based on when the server receives the message
-				Calendar calendar = Calendar.getInstance();
+				calendar = Calendar.getInstance();
 				message.setTimeStamp(simpleDateFormat.format(calendar.getTime()));
 
 				switch (message.getCommand()) {
@@ -93,7 +93,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 						message.setCommand("whisper");
 						Server.whisper(message, userToMessage);
 					} else {
-						message.setContents("Command used was not recognized.");
+						message.setContents("Command used was not recognized. Type 'help' for supported commands.");
 						writeToClient(message);
 					}
 				

@@ -48,6 +48,8 @@ cli
 
     if (command === 'disconnect') {
       server.end(new Message({ username, command }).toJSON() + '\n')
+    } else if (command === 'help') {
+      this.log('Currently supported commands are:\ndisconnect\nusers\necho (message)\nbroadcast (message)\n@username (message)')
     } else {
       server.write(new Message({ username, command, contents }).toJSON() + '\n')
     }
