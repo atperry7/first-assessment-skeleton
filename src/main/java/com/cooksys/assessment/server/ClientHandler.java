@@ -85,8 +85,13 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 					writer.write(response);
 					writer.flush();					
 					break;
-				case "whisper":
-					break;
+				default:
+					if (message.getCommand().startsWith("@")) {
+						String theCommand = message.getCommand().substring(1);
+						message.setCommand("whisper");
+						Server.whisper(message, theCommand);
+					}
+				
 				}
 			}
 

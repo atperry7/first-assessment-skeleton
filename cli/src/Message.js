@@ -26,6 +26,8 @@ export class Message {
       return `\x1b[35m${this.timestamp} <${this.username}> (all): ${this.contents}`
     } else if (this.command === 'users') {
       return `\x1b[32m${this.timestamp}: currently connected users:\n${this.contents}`
+    } else if (this.command === 'whisper') {
+      return `${this.timestamp} <${this.username}> (whisper): ${this.contents}`
     } else {
       return `\x1b[34m${this.timestamp} <${this.username}> (${this.command}): ${this.contents}`
     }

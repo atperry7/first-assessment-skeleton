@@ -15,7 +15,9 @@ cli
   .delimiter(cli.chalk['yellow']('ftd~$'))
 
 cli
-  .mode('connect <username> [host] [port]')
+  .mode('connect <username>')
+  .option('-h, --host <h>')
+  .option('-p, --port <port>')
   .init(function (args, callback) {
     let host
     let port
@@ -46,10 +48,12 @@ cli
     })
   }).delimiter(cli.chalk['green'](`<${username}>`))
   .action(function (input, callback) {
-    const [ command, ...rest ] = words(input)
+    const [ command, ...rest ] = words(input, /\S+/g) // Used /S+/g to sepearate at the spaces and checks the entire string (global)
     const contents = rest.join(' ')
 
-    if (command === 'disconnect') {
+    if (command.charAt(0) === '@') {
+      server.write(new Message({ username, command, contents }).toJSON() + '\n')
+    } else if (command === 'disconnect') {
       server.end(new Message({ username, command }).toJSON() + '\n')
     } else if (command === 'echo') {
       server.write(new Message({ username, command, contents }).toJSON() + '\n')
@@ -57,7 +61,7 @@ cli
       server.write(new Message({ username, command, contents }).toJSON() + '\n')
     } else if (command === 'users') {
       server.write(new Message({ username, command }).toJSON() + '\n')
-    }  else {
+    } else {
       this.log(`Command <${command}> was not recognized`)
     }
 
