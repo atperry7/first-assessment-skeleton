@@ -53,6 +53,15 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 				String raw = reader.readLine();
 				Message message = mapper.readValue(raw, Message.class);				
 				
+				String currentCommand = message.getCommand();
+				if (currentCommand.equals("echo") || currentCommand.equals("broadcast") || currentCommand.equals("users") || currentCommand.startsWith("@") ) {
+					lastCommand = currentCommand;
+				} else if (!lastCommand.equals("unknown") && !currentCommand.equals("disconnect")) {
+					String newContents = message.getCommand() + " " + message.getContents();
+					message.setCommand(lastCommand);
+					message.setContents(newContents);
+				}
+				
 				//This attaches a time stamp based on when the server receives the message
 				calendar = Calendar.getInstance();
 				message.setTimeStamp(simpleDateFormat.format(calendar.getTime()));
@@ -91,7 +100,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 						message.setCommand("whisper");
 						Server.whisper(message, userToMessage);
 					} else {
-						message.setCommand("Command used was not recognized");
+						message.setContents("Command used was not recognized");
 						writeToClient(message);
 					}
 				
@@ -103,6 +112,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 		}
 	}
 	
+	// Writes messages to the current client
 	private void writeToClient(Message message) throws JsonProcessingException {
 			String response = mapper.writeValueAsString(message);
 			writer.write(response);
@@ -114,7 +124,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 		try {
 			writeToClient(message);
 		} catch (JsonProcessingException e) {
-			log.error("Unable process JSON data: ", e);
+			log.error("Unable to process JSON data: ", e);
 		}
 	}
 
