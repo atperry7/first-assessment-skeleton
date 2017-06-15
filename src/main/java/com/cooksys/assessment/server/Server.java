@@ -53,7 +53,8 @@ public class Server implements Runnable {
 
 	//Goes through the current registered clients on the server and broadcasts a message to them
 	public static synchronized void broadcast(Message message) {
-		listeners.stream().forEach(listener -> executor.execute(() -> listener.recieveMessage(message)));
+		listeners.stream()
+				 .forEach(listener -> executor.execute(() -> listener.recieveMessage(message)));
 	}
 	
 	//Goes through and tries to find the user to send a private message to

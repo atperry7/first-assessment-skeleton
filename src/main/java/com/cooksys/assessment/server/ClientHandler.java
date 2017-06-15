@@ -1,13 +1,11 @@
 package com.cooksys.assessment.server;
 
 import java.io.BufferedReader;
-import java.io.Console;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.rmi.activation.ActivationGroupDesc.CommandEnvironment;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
@@ -26,31 +24,30 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 	private PrintWriter writer;
 	private ObjectMapper mapper;
 	private String currentUser;
-	private static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+	private static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
 	private Calendar calendar;
 
 	public ClientHandler(Socket socket) {
 		super();
 		this.socket = socket;
 		this.mapper = new ObjectMapper();
-		try {
-			writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	public void run() {
 		try {
 
 			BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
+			writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 			while (!socket.isClosed()) {
 				String raw = reader.readLine();
 				Message message = mapper.readValue(raw, Message.class);
+				String lastCommand = message.getCommand();
 				
-				//This attaches a timestamp based on when the server recieves the message
+				if (message.getCommand().isEmpty() || message.getCommand() != null) {
+					message.setCommand(lastCommand);
+				}
+				
+				//This attaches a time stamp based on when the server receives the message
 				calendar = Calendar.getInstance();
 				message.setTimeStamp(simpleDateFormat.format(calendar.getTime()));
 
@@ -71,25 +68,25 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 					break;
 				case "echo":
 					log.info("user <{}> echoed message <{}>", message.getUsername(), message.getContents());
-					String response = mapper.writeValueAsString(message);
-					writer.write(response);
-					writer.flush();
+					writeToClient(message);
 					break;
 				case "broadcast":
 					log.info("user <{}> broadcast message <{}>", message.getUsername(), message.getContents());
 					Server.broadcast(message);
 					break;
 				case "users":
+					log.info("user <{}> requested currently connected users", message.getUsername());
 					message.setContents(Server.getCurrentUsersOnServer());
-					response = mapper.writeValueAsString(message);
-					writer.write(response);
-					writer.flush();					
+					writeToClient(message);						
 					break;
 				default:
 					if (message.getCommand().startsWith("@")) {
-						String theCommand = message.getCommand().substring(1);
+						String userToMessage = message.getCommand().substring(1);
 						message.setCommand("whisper");
-						Server.whisper(message, theCommand);
+						Server.whisper(message, userToMessage);
+					} else {
+						message.setCommand("Command used was not recognized");
+						writeToClient(message);
 					}
 				
 				}
@@ -99,13 +96,18 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 			log.error("Something went wrong :/", e);
 		}
 	}
+	
+	private void writeToClient(Message message) throws JsonProcessingException {
+		String response = mapper.writeValueAsString(message);
+		writer.write(response);
+		writer.flush();		
+		
+	}
 
 	@Override
 	public synchronized void recieveMessage(Message message) {
 		try {
-			String response = mapper.writeValueAsString(message);
-			writer.write(response);
-			writer.flush();
+			writeToClient(message);
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		}

@@ -5,30 +5,25 @@ import { Message } from './Message'
 
 export const cli = vorpal()
 
-var ipRegex = /(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/
+const ipRegex = /(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/
 
 let username
 let server
-let commandGlo
 
 cli
   .delimiter(cli.chalk['yellow']('ftd~$'))
 
 cli
-  .mode('connect <username>')
-  .option('-h, --host <h>')
-  .option('-p, --port <port>')
+  .mode('connect <username>', 'This will connect you to the FTD Chat Server. Requires a username to be signed in.')
+  .option('-h, --host <h>', 'IP address to the chat server, defaults localhost')
+  .option('-p, --port <port>', 'Port for the chat server, defaults 8080')
+  .delimiter(cli.chalk['green'](`<FTD Chat>`))
   .init(function (args, callback) {
-    let host
-    let port
+    let host = ipRegex.test(args.host) ? args.host : 'localhost'
+    let port = args.port
     username = args.username
-    if (ipRegex.test(args.host)) {
-      host = args.host
-    } else {
-      host = 'localhost'
-    }
 
-    if (args.post !== undefined) {
+    if (args.port !== undefined) {
       port = Number(args.port)
     } else {
       port = 8080
@@ -46,23 +41,16 @@ cli
     server.on('end', () => {
       cli.exec('exit')
     })
-  }).delimiter(cli.chalk['green'](`<${username}>`))
+  })
   .action(function (input, callback) {
     const [ command, ...rest ] = words(input, /\S+/g) // Used /S+/g to sepearate at the spaces and checks the entire string (global)
     const contents = rest.join(' ')
+    let lastCommand
 
-    if (command.charAt(0) === '@') {
-      server.write(new Message({ username, command, contents }).toJSON() + '\n')
-    } else if (command === 'disconnect') {
+    if (command === 'disconnect') {
       server.end(new Message({ username, command }).toJSON() + '\n')
-    } else if (command === 'echo') {
-      server.write(new Message({ username, command, contents }).toJSON() + '\n')
-    } else if (command === 'broadcast') {
-      server.write(new Message({ username, command, contents }).toJSON() + '\n')
-    } else if (command === 'users') {
-      server.write(new Message({ username, command }).toJSON() + '\n')
     } else {
-      this.log(`Command <${command}> was not recognized`)
+      server.write(new Message({ username, command, contents }).toJSON() + '\n')
     }
 
     callback()
