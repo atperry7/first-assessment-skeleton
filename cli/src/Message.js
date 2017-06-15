@@ -21,13 +21,13 @@ export class Message {
 
   toString () {
     if (this.command === 'connect' || this.command === 'disconnect') {
-      return `${this.timestamp}: <${this.username}> ${this.contents}`
+      return `\x1b[31m${this.timestamp}: <${this.username}> ${this.contents}`
     } else if (this.command === 'broadcast') {
-      return `${this.timestamp} <${this.username}> (all): ${this.contents}`
+      return `\x1b[35m${this.timestamp} <${this.username}> (all): ${this.contents}`
     } else if (this.command === 'users') {
-      return `${this.timestamp}: currently connected users:\n${this.contents}`
+      return `\x1b[32m${this.timestamp}: currently connected users:\n${this.contents}`
     } else {
-      return `${this.timestamp} <${this.username}> (${this.command}): ${this.contents}`
+      return `\x1b[34m${this.timestamp} <${this.username}> (${this.command}): ${this.contents}`
     }
   }
 }

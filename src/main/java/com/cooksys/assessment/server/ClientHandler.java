@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.rmi.activation.ActivationGroupDesc.CommandEnvironment;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
@@ -48,13 +49,15 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 			while (!socket.isClosed()) {
 				String raw = reader.readLine();
 				Message message = mapper.readValue(raw, Message.class);
+				
+				//This attaches a timestamp based on when the server recieves the message
 				calendar = Calendar.getInstance();
 				message.setTimeStamp(simpleDateFormat.format(calendar.getTime()));
 
 				switch (message.getCommand()) {
 				case "connect":
 					log.info("user <{}> connected", message.getUsername());
-					message.setContents(" has connected");
+					message.setContents("has connected");
 					Server.broadcast(message);
 					Server.register(this);
 					currentUser = message.getUsername();
@@ -62,7 +65,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 				case "disconnect":
 					log.info("user <{}> disconnected", message.getUsername());
 					Server.unregister(this);
-					message.setContents(" has disconnected");
+					message.setContents("has disconnected");
 					Server.broadcast(message);
 					this.socket.close();
 					break;
@@ -81,6 +84,8 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 					response = mapper.writeValueAsString(message);
 					writer.write(response);
 					writer.flush();					
+					break;
+				case "whisper":
 					break;
 				}
 			}

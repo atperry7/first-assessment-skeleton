@@ -48,7 +48,6 @@ cli
   .action(function (input, callback) {
     const [ command, ...rest ] = words(input)
     const contents = rest.join(' ')
-    const regExp = new RegExp('^\u0040')
 
     if (command === 'disconnect') {
       server.end(new Message({ username, command }).toJSON() + '\n')
@@ -58,9 +57,7 @@ cli
       server.write(new Message({ username, command, contents }).toJSON() + '\n')
     } else if (command === 'users') {
       server.write(new Message({ username, command }).toJSON() + '\n')
-    } else if (regExp.test(command)) {
-      this.log('Currently Implementing the whisper method')
-    } else {
+    }  else {
       this.log(`Command <${command}> was not recognized`)
     }
 
