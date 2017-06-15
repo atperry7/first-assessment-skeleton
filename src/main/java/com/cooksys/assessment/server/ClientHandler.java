@@ -1,11 +1,14 @@
 package com.cooksys.assessment.server;
 
 import java.io.BufferedReader;
+import java.io.Console;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +25,8 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 	private PrintWriter writer;
 	private ObjectMapper mapper;
 	private String currentUser;
+	private static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+	private Calendar calendar;
 
 	public ClientHandler(Socket socket) {
 		super();
@@ -43,6 +48,8 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 			while (!socket.isClosed()) {
 				String raw = reader.readLine();
 				Message message = mapper.readValue(raw, Message.class);
+				calendar = Calendar.getInstance();
+				message.setTimeStamp(simpleDateFormat.format(calendar.getTime()));
 
 				switch (message.getCommand()) {
 				case "connect":
@@ -69,6 +76,12 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 					log.info("user <{}> broadcast message <{}>", message.getUsername(), message.getContents());
 					Server.broadcast(message);
 					break;
+				case "users":
+					message.setContents(Server.getCurrentUsersOnServer());
+					response = mapper.writeValueAsString(message);
+					writer.write(response);
+					writer.flush();					
+					break;
 				}
 			}
 
@@ -86,7 +99,6 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		}
-
 	}
 
 	public String getCurrentUser() {

@@ -69,8 +69,13 @@ public class Server implements Runnable {
 			});
 	}
 	
-	public static synchronized void getCurrentUsersOnServer() {
+	public static synchronized String getCurrentUsersOnServer() {
+		String contents = "";
+		for (IBroadcasterListener iBroadcasterListener : listeners) {
+			contents += "<" + iBroadcasterListener.getCurrentUser() + ">" + "\n";
+		}
 		
+		return contents;
 	}
 
 }

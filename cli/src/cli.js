@@ -5,6 +5,8 @@ import { Message } from './Message'
 
 export const cli = vorpal()
 
+var ipRegex = /(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/
+
 let username
 let server
 let commandGlo
@@ -18,7 +20,7 @@ cli
     let host
     let port
     username = args.username
-    if (args.host !== undefined) {
+    if (ipRegex.test(args.host)) {
       host = args.host
     } else {
       host = 'localhost'
@@ -46,7 +48,7 @@ cli
   .action(function (input, callback) {
     const [ command, ...rest ] = words(input)
     const contents = rest.join(' ')
-    const regExp = new RegExp('/[^@a-z]/')
+    const regExp = new RegExp('^\u0040')
 
     if (command === 'disconnect') {
       server.end(new Message({ username, command }).toJSON() + '\n')
@@ -54,6 +56,8 @@ cli
       server.write(new Message({ username, command, contents }).toJSON() + '\n')
     } else if (command === 'broadcast') {
       server.write(new Message({ username, command, contents }).toJSON() + '\n')
+    } else if (command === 'users') {
+      server.write(new Message({ username, command }).toJSON() + '\n')
     } else if (regExp.test(command)) {
       this.log('Currently Implementing the whisper method')
     } else {
