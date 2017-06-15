@@ -61,16 +61,23 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 
 				switch (message.getCommand()) {
 				case "connect":
-					log.info("user <{}> connected", message.getUsername());
-					message.setContents("has connected");
-					Server.broadcast(message);
-					Server.register(this);
-					currentUser = message.getUsername();
+					if (Server.checkForUser(message.getUsername())) {
+						log.info("user <{}> already exisits closing socket", message.getUsername());
+						message.setContents("user already exists, please try another usename!");
+						writeToClient(message);
+						this.socket.close();
+					} else {
+						log.info("user <{}> connected", message.getUsername());
+						message.setContents("has connected.");
+						Server.broadcast(message);
+						Server.register(this);
+						currentUser = message.getUsername();
+					}
 					break;
 				case "disconnect":
 					log.info("user <{}> disconnected", message.getUsername());
 					Server.unregister(this);
-					message.setContents("has disconnected");
+					message.setContents("has disconnected.");
 					Server.broadcast(message);
 					this.socket.close();
 					break;
@@ -127,7 +134,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 	/**
 	 * Writes messages to the current client
 	 * @param message Message object to be sent back to the client
-	 * @throws JsonProcessingException Attempts to parse message to JSON
+	 * @throws JsonProcessingException Thrown if unable to parse message to JSON
 	 */
 	private void writeToClient(Message message) throws JsonProcessingException {
 			String response = mapper.writeValueAsString(message);

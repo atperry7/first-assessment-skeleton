@@ -3,6 +3,7 @@ package com.cooksys.assessment.server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.concurrent.ExecutorService;
 
@@ -89,6 +90,15 @@ public class Server implements Runnable {
 		}
 		
 		return contents;
+	}
+	
+	public static boolean checkForUser(String username) {
+		for (IBroadcasterListener listener : listeners) {
+			if (username.equals(listener.getCurrentUser())) {
+				return true;
+			}
+		}	
+		return false;
 	}
 
 }

@@ -16,18 +16,12 @@ cli
 cli
   .mode('connect <username>', 'This will connect you to the FTD Chat Server. Requires a username to be signed in.')
   .option('-h, --host <h>', 'IP address to the chat server, defaults localhost')
-  .option('-p, --port <port>', 'Port for the chat server, defaults 8080')
+  .option('-p, --port <p>', 'Port for the chat server, defaults 8080')
   .delimiter(cli.chalk['green'](`<FTD Chat>`))
   .init(function (args, callback) {
-    let host = ipRegex.test(args.host) ? args.host : 'localhost'
-    let port
+    let host = ipRegex.test(args.options.host) ? args.options.host : 'localhost'
+    let port = args.options.port === undefined ? 8080 : args.options.port
     username = args.username
-
-    if (args.port !== undefined) {
-      port = Number(args.port)
-    } else {
-      port = 8080
-    }
 
     server = connect({ host: host, port: port }, () => {
       server.write(new Message({ username, command: 'connect' }).toJSON() + '\n')
