@@ -20,7 +20,7 @@ cli
   .delimiter(cli.chalk['green'](`<FTD Chat>`))
   .init(function (args, callback) {
     let host = ipRegex.test(args.host) ? args.host : 'localhost'
-    let port = args.port
+    let port
     username = args.username
 
     if (args.port !== undefined) {
@@ -45,7 +45,6 @@ cli
   .action(function (input, callback) {
     const [ command, ...rest ] = words(input, /\S+/g) // Used /S+/g to sepearate at the spaces and checks the entire string (global)
     const contents = rest.join(' ')
-    let lastCommand
 
     if (command === 'disconnect') {
       server.end(new Message({ username, command }).toJSON() + '\n')

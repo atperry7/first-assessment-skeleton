@@ -57,17 +57,12 @@ public class Server implements Runnable {
 				 .forEach(listener -> executor.execute(() -> listener.recieveMessage(message)));
 	}
 	
-	//Goes through and tries to find the user to send a private message to
+	//Goes through and attempts to the user to send a private message to
 	public static synchronized void whisper(Message message, String userName) {
 		for (final IBroadcasterListener listener : listeners)
-			executor.execute(new Runnable() {
-				@Override
-				public void run() {
-					if (listener.getCurrentUser().equals(userName)) {
-						listener.recieveMessage(message);
-					}
-				}
-			});
+			if (listener.getCurrentUser().equals(userName)) {
+				executor.execute(() -> { listener.recieveMessage(message); });
+			}
 	}
 	
 	public static synchronized String getCurrentUsersOnServer() {
