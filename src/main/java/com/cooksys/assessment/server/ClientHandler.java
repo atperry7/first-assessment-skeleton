@@ -8,11 +8,14 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cooksys.assessment.interfaces.IBroadcasterListener;
+import com.cooksys.assessment.model.Commands;
 import com.cooksys.assessment.model.Message;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,7 +26,6 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 	private Socket socket;
 	private ObjectMapper mapper;
 	private PrintWriter writer;
-	
 	// Variables used for data saved for the current client
 	private String currentUser;
 	private String lastCommand = "unknown";
@@ -96,6 +98,11 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 					message.setContents(Server.getCurrentUsersOnServer());
 					writeToClient(message);						
 					break;
+				case "help":
+					log.info("user <{}> requested help", message.getUsername());
+					message.setContents("Currently supported commands are:\ndisconnect\nusers\necho (message)\nbroadcast (message)\n@username (message)\n");
+					writeToClient(message);
+					break;
 				default:
 					if (message.getCommand().startsWith("@")) {
 						String userToMessage = message.getCommand().substring(1);
@@ -121,8 +128,15 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 	private Message commandCheck(Message message) {
 		String currentCommand = message.getCommand();
 		
-		if (currentCommand.equals("echo") || currentCommand.equals("broadcast") || currentCommand.equals("users") || currentCommand.startsWith("@") ) {
+		//Grabs a list of enumerated commands and checks if the command the user used is actually apart of the accepted list
+		Commands[] commmands = Commands.values();
+		Optional<Commands> commandFound = Stream.of(commmands)
+												.filter(command -> command.getCommand().equals(currentCommand))
+												.findFirst();
+		
+		if (commandFound.isPresent() || currentCommand.startsWith("@")) {
 			lastCommand = currentCommand;
+			
 		} else if (!lastCommand.equals("unknown") && !currentCommand.equals("disconnect")) {
 			String newContents = message.getCommand() + " " + message.getContents();
 			message.setCommand(lastCommand);
