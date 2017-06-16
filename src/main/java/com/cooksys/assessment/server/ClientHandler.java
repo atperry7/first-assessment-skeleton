@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cooksys.assessment.interfaces.IBroadcasterListener;
+import com.cooksys.assessment.model.ClientMessages;
 import com.cooksys.assessment.model.Commands;
 import com.cooksys.assessment.model.Message;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -26,13 +27,13 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 	private Socket socket;
 	private ObjectMapper mapper;
 	private PrintWriter writer;
+	
 	// Variables used for data saved for the current client
 	private String currentUser;
 	private String lastCommand = "unknown";
 	
 	// Variables used for time stamping information received from the client
 	private static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
-	
 	
 	public ClientHandler(Socket socket) {
 		super();
@@ -47,9 +48,8 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 	}
 
 	public void run() {
-		try {
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));) {
 
-			BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			Calendar calendar;
 			while (!socket.isClosed()) {
 				String raw = reader.readLine();
@@ -63,45 +63,26 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 
 				switch (message.getCommand()) {
 				case "connect":
-					//Checks if the current username already exists, if it does prints to the clients to try another username
-					//If it does not exist then it goes ahead and creates the client for the user and broadcasts the message
-					if (Server.checkForUser(message.getUsername())) {
-						log.info("user <{}> already exisits closing socket", message.getUsername());
-						message.setContents("user already exists, please try another usename!");
-						writeToClient(message);
-						this.socket.close();
-					} else {
-						log.info("user <{}> connected", message.getUsername());
-						message.setContents("has connected.");
-						Server.broadcast(message);
-						Server.register(this);
-						currentUser = message.getUsername();
+					if (!cmdConnected(message)) {
+						this.socket.close();						
 					}
 					break;
 				case "disconnect":
-					log.info("user <{}> disconnected", message.getUsername());
-					Server.unregister(this);
-					message.setContents("has disconnected.");
-					Server.broadcast(message);
-					this.socket.close();
+					if (cmdDisconnect(message)) {
+						this.socket.close();
+					}
 					break;
 				case "echo":
-					log.info("user <{}> echoed message <{}>", message.getUsername(), message.getContents());
-					writeToClient(message);
+					cmdEcho(message);
 					break;
 				case "broadcast":
-					log.info("user <{}> broadcast message <{}>", message.getUsername(), message.getContents());
-					Server.broadcast(message);
+					cmdBroadcast(message);
 					break;
 				case "users":
-					log.info("user <{}> requested currently connected users", message.getUsername());
-					message.setContents(Server.getCurrentUsersOnServer());
-					writeToClient(message);						
+					cmdUsers(message);						
 					break;
 				case "help":
-					log.info("user <{}> requested help", message.getUsername());
-					message.setContents("Currently supported commands are:\ndisconnect\nusers\necho (message)\nbroadcast (message)\n@username (message)\n");
-					writeToClient(message);
+					cmdHelp(message);
 					break;
 				default:
 					if (message.getCommand().startsWith("@")) {
@@ -109,7 +90,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 						message.setCommand("whisper");
 						Server.whisper(message, userToMessage);
 					} else {
-						message.setContents("Command used was not recognized. Type 'help' for supported commands.");
+						message.setContents(ClientMessages.COMMAND_NOT_RECOGNIZED.getMessage());
 						writeToClient(message);
 					}
 				}
@@ -117,6 +98,87 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 
 		} catch (IOException e) {
 			log.error("Something went wrong :/", e);
+		} finally {
+			writer.close();
+		}
+	}
+
+	/**
+	 * Command use by client to obtain a list of commands they can use
+	 * @param message Message Object sent by client
+	 * @throws JsonProcessingException
+	 */
+	private void cmdHelp(Message message) throws JsonProcessingException {
+		log.info("user <{}> requested help", message.getUsername());
+		message.setContents(ClientMessages.HELP_COMMAND_MESSAGE.getMessage());
+		writeToClient(message);
+	}
+
+	/**
+	 * Command used by client to obtain a list of currently connected users
+	 * @param message Message Object sent by client
+	 * @throws JsonProcessingException
+	 */
+	private void cmdUsers(Message message) throws JsonProcessingException {
+		log.info("user <{}> requested currently connected users", message.getUsername());
+		message.setContents(Server.getCurrentUsersOnServer());
+		writeToClient(message);
+	}
+
+	/**
+	 * Command used by client to broadcast a message to other clients
+	 * @param message Message Object sent by client
+	 */
+	private void cmdBroadcast(Message message) {
+		log.info("user <{}> broadcast message <{}>", message.getUsername(), message.getContents());
+		Server.broadcast(message);
+	}
+
+	/**
+	 * Command used by client to echo a message to the server and back to them
+	 * @param message Message Object sent by client
+	 * @throws JsonProcessingException
+	 */
+	private void cmdEcho(Message message) throws JsonProcessingException {
+		log.info("user <{}> echoed message <{}>", message.getUsername(), message.getContents());
+		writeToClient(message);
+	}
+
+	/**
+	 * Command used by client to disconnect from server
+	 * @param message Message Object sent by client
+	 * @return true if the server was able to unregister the client
+	 */
+	private boolean cmdDisconnect(Message message) {
+		if (Server.unregister(this)) {
+			log.info("user <{}> disconnected", message.getUsername());
+			message.setContents(ClientMessages.HAS_DISCONNECTED.getMessage());
+			Server.broadcast(message);
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * Command used by client to connect to server
+	 * @param message Message Object sent by client
+	 * @return true if there is not another client using the current username
+	 * @throws JsonProcessingException
+	 * @throws IOException
+	 */
+	private boolean cmdConnected(Message message) throws JsonProcessingException, IOException {
+		if (Server.checkForUser(message.getUsername())) {
+			log.info("user <{}> already exisits closing socket", message.getUsername());
+			message.setContents("user already exists, please try another usename!");
+			writeToClient(message);
+			return false;
+		} else {
+			log.info("user <{}> connected", message.getUsername());
+			message.setContents(ClientMessages.HAS_CONNECTED.getMessage());
+			Server.broadcast(message);
+			Server.register(this);
+			currentUser = message.getUsername();
+			return true;
 		}
 	}
 
@@ -137,7 +199,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 		if (commandFound.isPresent() || currentCommand.startsWith("@")) {
 			lastCommand = currentCommand;
 			
-		} else if (!lastCommand.equals("unknown") && !currentCommand.equals("disconnect")) {
+		} else if (!lastCommand.equals("unknown") && !currentCommand.equals("disconnect") && !currentCommand.equals("connect")) {
 			String newContents = message.getCommand() + " " + message.getContents();
 			message.setCommand(lastCommand);
 			message.setContents(newContents);

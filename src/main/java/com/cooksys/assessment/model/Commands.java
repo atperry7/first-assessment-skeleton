@@ -1,16 +1,15 @@
 package com.cooksys.assessment.model;
 
 /**
- * List of commonly used commands on client chat server
+ * List of commonly used commands on client chat server for communicating with other users.
+ * Plus some basic helper commands
  * <p>
- * "@" is not included due to its special nature
+ * "@", connect and disconnect are not included due to their special nature
  */
 public enum Commands {
 	ECHO("echo"),
 	BROADCAST("broadcast"),
 	USERS("users"),
-	CONNECT("connect"),
-	DISCONNECT("disconnect"),
 	HELP("help");
 	
 	

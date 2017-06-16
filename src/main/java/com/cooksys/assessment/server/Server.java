@@ -47,16 +47,16 @@ public class Server implements Runnable {
 	 * Adds a client to listen for broadcasted messages
 	 * @param listener the client to be added
 	 */
-	public static synchronized void register(IBroadcasterListener listener) {
-		listeners.add(listener);
+	public static synchronized boolean register(IBroadcasterListener listener) {
+		return listeners.add(listener);
 	}
 	
 	/**
 	 * Remove a client from listening to the broadcasted messages
 	 * @param listener the client to be removed
 	 */
-	public static synchronized void unregister(IBroadcasterListener listener) {
-		listeners.remove(listener);
+	public static synchronized boolean unregister(IBroadcasterListener listener) {
+		return listeners.remove(listener);
 	}
 
 	/**
@@ -96,12 +96,10 @@ public class Server implements Runnable {
 	 * @param username username to check the server for
 	 * @return true or false based on the finding
 	 */
-	public static boolean checkForUser(String username) {
-		for (IBroadcasterListener listener : listeners) {
-			if (username.equals(listener.getCurrentUser())) {
-				return true;
-			}
-		}	
-		return false;
+	public static boolean checkForUser(String username) {	
+		return listeners.stream()
+						.filter(listener -> listener.getCurrentUser().equals(username))
+						.findFirst()
+						.isPresent();
 	}
 }
