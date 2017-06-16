@@ -86,9 +86,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 					break;
 				default:
 					if (message.getCommand().startsWith("@")) {
-						String userToMessage = message.getCommand().substring(1);
-						message.setCommand("whisper");
-						Server.whisper(message, userToMessage);
+						cmdWhisper(message);
 					} else {
 						message.setContents(ClientMessages.COMMAND_NOT_RECOGNIZED.getMessage());
 						writeToClient(message);
@@ -101,6 +99,16 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 		} finally {
 			writer.close();
 		}
+	}
+
+	/**
+	 * Command("@username") used by the client to send a private message to the client
+	 * @param message Message Object sent by client
+	 */
+	private void cmdWhisper(Message message) {
+		String userToMessage = message.getCommand().substring(1);
+		message.setCommand("whisper");
+		Server.whisper(message, userToMessage);
 	}
 
 	/**
