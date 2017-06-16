@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
 import org.slf4j.Logger;
@@ -72,11 +73,20 @@ public class Server implements Runnable {
 	 * Goes through and attempts to find the user to send a private message to
 	 * @param message the Message object to be sent in a private message to a client
 	 * @param userName the name of the user to send a private message to
+	 * @return true if the message is successfully sent to a client connected to the server
 	 */
-	public static synchronized void whisper(Message message, String userName) {
-		listeners.stream()
+	public static synchronized boolean whisper(Message message, String userName) {
+		Optional<IBroadcasterListener> whisperTo = listeners.stream()
 				 .filter(listener -> listener.getCurrentUser().equals(userName))
-				 .forEach(listener -> executor.execute(() -> { listener.receiveMessage(message); }));
+				 .findFirst();
+		
+		if (whisperTo.isPresent()) {
+			executor.execute(() -> { whisperTo.get().receiveMessage(message); });
+			return true;
+		}
+		
+		return false;
+		
 	}
 	
 	/**

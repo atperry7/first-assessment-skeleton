@@ -7,7 +7,8 @@ public enum ClientMessages {
 	HAS_DISCONNECTED("has disconnected."),
 	HAS_CONNECTED("has connected."),
 	COMMAND_NOT_RECOGNIZED("Command used was not recognized. Type 'help' for supported commands."),
-	HELP_COMMAND_MESSAGE("Currently supported commands are:\ndisconnect\nusers\necho (message)\nbroadcast (message)\n@username (message)\n");
+	HELP_COMMAND_MESSAGE("Currently supported commands are:\ndisconnect\nusers\necho (message)\nbroadcast (message)\n@username (message)\n"),
+	USER_NOT_FOUND("User not found, type 'users' to see currently connected users.");
 	
 	private String cMessage;
 	private ClientMessages(String cMessage) { this.cMessage = cMessage; }
