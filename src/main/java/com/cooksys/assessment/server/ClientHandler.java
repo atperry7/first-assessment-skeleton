@@ -31,6 +31,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 	// Variables used for data saved for the current client
 	private String currentUser;
 	private String lastCommand = "unknown";
+	private boolean isConnected = false;
 	
 	// Variables used for time stamping information received from the client
 	private static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
@@ -179,9 +180,13 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 	 * @throws IOException
 	 */
 	private boolean cmdConnected(Message message) throws JsonProcessingException, IOException {
-		if (Server.checkForUser(message.getUsername())) {
+		if (isConnected == true) {
+			message.setContents(ClientMessages.IS_CONNECTED.getMessage());
+			writeToClient(message);
+			return true;
+		} else if (Server.checkForUser(message.getUsername())) {
 			log.info("user <{}> already exisits closing socket", message.getUsername());
-			message.setContents("user already exists, please try another usename!");
+			message.setContents(ClientMessages.USER_EXISTS.getMessage());
 			writeToClient(message);
 			return false;
 		} else {
@@ -190,6 +195,7 @@ public class ClientHandler implements Runnable, IBroadcasterListener {
 			Server.broadcast(message);
 			Server.register(this);
 			currentUser = message.getUsername();
+			isConnected = true;
 			return true;
 		}
 	}
